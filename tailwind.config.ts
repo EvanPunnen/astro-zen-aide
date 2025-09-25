@@ -22,6 +22,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          glow: "hsl(var(--primary-glow))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -46,6 +47,11 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        health: {
+          good: "hsl(var(--health-good))",
+          warning: "hsl(var(--health-warning))",
+          critical: "hsl(var(--health-critical))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -84,6 +90,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite alternate",
+        "float": "float 3s ease-in-out infinite",
+        "scan": "scan 3s linear infinite",
       },
     },
   },
