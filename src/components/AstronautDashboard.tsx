@@ -217,7 +217,7 @@ export const AstronautDashboard = () => {
         </div>
 
         {/* System Status */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
           <Card className="space-panel text-center">
             <Camera className="w-8 h-8 text-health-good mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Facial Detection</p>
@@ -231,8 +231,14 @@ export const AstronautDashboard = () => {
           </Card>
           
           <Card className="space-panel text-center">
+            <Brain className="w-8 h-8 text-primary mx-auto mb-2 ai-glow" />
+            <p className="text-sm text-muted-foreground">Multimodal AI</p>
+            <p className="font-semibold text-primary">ANALYZING</p>
+          </Card>
+          
+          <Card className="space-panel text-center">
             <Brain className="w-8 h-8 text-health-warning mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">AI Assistant</p>
+            <p className="text-sm text-muted-foreground">AI Companion</p>
             <p className="font-semibold text-health-warning">STANDBY</p>
           </Card>
           
