@@ -95,7 +95,7 @@ export const AICompanion = () => {
     {
       id: '1',
       type: 'ai',
-      content: "Hello! I'm ASTRA, your advanced AI companion. I'm continuously monitoring your well-being and adapting to support you better. How are you feeling today?",
+      content: "Hello! I'm ASTRA, your voice-enabled AI companion. I'm continuously monitoring your well-being and ready to have a conversation with you. Would you like to enable voice mode so we can talk naturally?",
       timestamp: new Date(),
     }
   ]);
@@ -103,7 +103,8 @@ export const AICompanion = () => {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true); // Start with voice enabled
+  const [autoListen, setAutoListen] = useState(false);
   const { toast } = useToast();
   
   // User profile and adaptive learning
@@ -182,13 +183,32 @@ export const AICompanion = () => {
 
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window) {
+      // Stop any ongoing speech
+      speechSynthesis.cancel();
+      
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
-      utterance.volume = 0.8;
+      
+      // Enhanced voice settings for clearer AI assistant voice
+      utterance.rate = 0.85; // Slightly slower for clarity
+      utterance.pitch = 1.0; // More natural pitch
+      utterance.volume = 0.9; // Higher volume
+      
+      // Try to use a more suitable voice if available
+      const voices = speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.name.includes('Google') || 
+        voice.name.includes('Microsoft') || 
+        voice.name.includes('Alex') ||
+        voice.name.includes('Samantha')
+      );
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
       
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
       
       speechSynthesis.speak(utterance);
     }
@@ -292,6 +312,15 @@ export const AICompanion = () => {
       
       if (voiceEnabled) {
         speakMessage(aiResponse);
+        
+        // In auto-listen mode, automatically start listening for next response
+        if (autoListen) {
+          setTimeout(() => {
+            if (!isListening && !isSpeaking) {
+              startVoiceRecognition();
+            }
+          }, 3000); // Wait 3 seconds after AI finishes speaking
+        }
       }
     }, 1000 + Math.random() * 1000); // Variable delay for more natural feel
   };
@@ -317,6 +346,13 @@ export const AICompanion = () => {
         const transcript = event.results[0][0].transcript;
         setInputValue(transcript);
         setIsListening(false);
+        
+        // Auto-send message in voice conversation mode
+        if (autoListen && transcript.trim()) {
+          setTimeout(() => {
+            handleSendMessage();
+          }, 100);
+        }
       };
 
       recognition.onerror = () => {
@@ -343,11 +379,36 @@ export const AICompanion = () => {
   };
 
   const toggleVoice = () => {
-    setVoiceEnabled(!voiceEnabled);
+    const newVoiceState = !voiceEnabled;
+    setVoiceEnabled(newVoiceState);
     setUserProfile(prev => ({
       ...prev,
-      preferences: { ...prev.preferences, voiceEnabled: !voiceEnabled }
+      preferences: { ...prev.preferences, voiceEnabled: newVoiceState }
     }));
+    
+    // Welcome message when enabling voice
+    if (newVoiceState) {
+      setTimeout(() => {
+        speakMessage("Voice mode activated! I can now speak to you. Try asking me how you're feeling or if you need any health reminders.");
+      }, 500);
+    } else {
+      speechSynthesis.cancel(); // Stop any ongoing speech
+    }
+  };
+
+  const startConversation = () => {
+    setAutoListen(true);
+    speakMessage("I'm ready to have a conversation with you. What's on your mind today?");
+    setTimeout(() => {
+      if (!isListening) {
+        startVoiceRecognition();
+      }
+    }, 2000);
+  };
+
+  const stopSpeaking = () => {
+    speechSynthesis.cancel();
+    setIsSpeaking(false);
   };
 
   const handleWellnessAction = (action: string) => {
@@ -450,18 +511,34 @@ export const AICompanion = () => {
                 variant={voiceEnabled ? "space" : "outline"}
                 size="sm"
                 onClick={toggleVoice}
-                title="Toggle voice responses"
+                title="Toggle voice mode"
               >
                 {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
+              {isSpeaking && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={stopSpeaking}
+                  title="Stop speaking"
+                >
+                  Stop
+                </Button>
+              )}
               <Button
-                variant={isListening ? "emergency" : "outline"}
+                variant={autoListen ? "space" : "outline"}
                 size="sm"
-                onClick={startVoiceRecognition}
-                disabled={isListening}
-                title="Voice input"
+                onClick={() => autoListen ? setAutoListen(false) : startConversation()}
+                title="Start voice conversation"
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {autoListen ? "End Chat" : "Talk"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleWellnessAction('emergency')}
+              >
+                <Heart className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -511,13 +588,29 @@ export const AICompanion = () => {
         <div className="border-t border-border p-4">
           <div className="flex space-x-2 mb-3">
             <Input
-              placeholder="Share your thoughts, concerns, or how you're feeling..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder={isListening ? "🎤 Listening..." : autoListen ? "Voice conversation active..." : "Type your message or use voice..."}
               className="flex-1"
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              disabled={isListening}
             />
-            <Button onClick={handleSendMessage} variant="space" size="icon">
+            <Button
+              variant={isListening ? "space" : "outline"}
+              size="icon"
+              onClick={startVoiceRecognition}
+              disabled={isListening}
+              title="Voice input"
+            >
+              {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4" />}
+            </Button>
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={!inputValue.trim() || isListening}
+              variant="space" 
+              size="icon"
+              title="Send message"
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>
